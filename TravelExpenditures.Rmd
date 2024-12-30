@@ -1,0 +1,53 @@
+---
+title: "Travel Expenditures"
+author: "Soryn Lurding"
+date: "2024-12-30"
+output: pdf_document
+---
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(sampleSelection)
+library(modelsummary)
+library(tidyverse)
+library(truncreg)
+library(censReg)
+library(AER)
+load("~/Downloads/tour_data.RData")
+```
+
+In this analysis, you will use customer level data on travel expenditures. You will observe the following variables. Use the dataset "tour_data.RData" for this question.
+
+Variables | Description
+----------|-------------
+income | Household income
+education | Education level of the household head
+health | Health status index of the household members
+tripweather | Weather quality in the destination of the trip
+participation | Dummy variable for tourism participation
+expenditure | Total household tourism expenditure
+
+Be sure to display your estimates in a regression table. 
+
+a) Estimate a regression model of expenditures on income, education, and tripweather.
+```{r}
+reg4 <- lm(expenditure ~ income + education + tripweather, data = tourexp)
+```
+
+b) Estimate a probit model on participation using income, education, and health
+```{r}
+reg5 <- glm(participation ~ income + education + health, data = tourexp, family = binomial(link = probit))
+```
+
+c) Estimate a sample selection model of tourism expenditures.
+```{r}
+reg6 <- heckit(participation ~ income + education + health,
+   expenditure ~ income + education + tripweather, data = tourexp, method = "2step" ) 
+
+```
+
+d) Compare your estimates in a) and c). Do you detect sample selection bias? How do you know?
+```{r}
+#summary(reg6)
+modelsummary(list("OLS"=reg4, "Probit"=reg5, "Selction"=reg6$probit, "Outcome"=reg6$lm), coef_rename = c("XS(Intercept)"="(Intercept)", "XSincome"="Income", "XSeducation"="Education", "XShealth"="Health", "XO(Intercept)"= "(Intercept)", "XOincome"="Income", "XOeducation"="Education", "XOtripweather"="Tripweather", "imrData$IMR1"="Inverse Mills Ratio", "income"="Income", "education"="Education", "tripweather"="Tripweather", "health"="Health"), title = "Customer Data on Travel Expenditures", stars = TRUE)
+```
+The inverse mills ratio corrects for sample selection.
+When using the inverse mills ratio as an explanatory variable we see that it is significant and greater than zero. This means there was sample selection bias. Because it is greater than zero, this tells us it is a positive bias and our means are too big.
